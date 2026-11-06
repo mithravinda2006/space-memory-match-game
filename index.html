@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Memory Match Game</title>
+    <style>
+        *{
+            box-sizing: border-box;
+        
+        }
+        body{
+            font-family: 'Times New Roman', cursive;
+            text-align: center;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 20px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        h1 { 
+            color: #333;
+            margin-top: 0px;
+            font-size: calc(1.8rem + 1vw);
+            font-weight: 700;
+        }
+
+        .page{
+            display: none;
+            width: 100%;
+        }
+
+        .page.active{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .start-card{
+            background-color: #ffffff;
+            border-radius: 16px;
+            padding: 30px 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+            border: 2px solid #e67e22;
+        }
+        
+        .start-image {
+            width: 100%;       /* Scales nicely to fit mobile screens */
+            max-width: 280px;  /* Controls the maximum width on desktop */
+            height: auto;     /* Optional: Set a fixed height if you want it cropped uniformly */
+            object-fit: cover; /* Ensures the image doesn't stretch if a height is set */
+            border-radius: 12px;
+            margin: 15px 0 25px 0;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            object-fit: cover;
+        }
+    
+        #status {
+            font-size: 1.2rem;
+            margin: 20px ;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            width: 100%;
+            max-width: 420px;
+            margin: 0 auto 20px auto;
+        }
+
+        .card{
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            background-color: #e67e22;
+            border-radius: 12px;
+            font-size: clamp(1.5rem, 6vw, 2.5rem);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: transparent;
+            user-select: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.1s, background-color 0.2s 
+        }
+
+        .card:active {
+            transform: scale(0.95);
+        }
+        .card.flipped {
+            color: inherit;
+            background-color: #ffffff;
+            border: 2px solid #e67e22;
+        }
+        button {
+            font-family: 'Times New Roman', cursive, sans-serif;
+            padding: 12px 24px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            background-color: #2ecc71;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+        }
+        button:hover {
+            background-color: #27ae60;
+        }
+    </style>
+    </head>
+<body>
+    <div id="start-screen" class="page active">
+        <div class="start-card">
+            
+    <img class="start-image" src="space.png" alt="Start Game Image">
+    <p>Test your memory by matching pairs of space-themed emojis! You have 14 moves to find all the pairs. Good luck!</p>
+    <div>
+        <button onclick="goToGame()">Start Game</button>
+    </div>
+</div>
+</div>
+
+<div id="game-screen" class="page">
+    <h4>✨Memory Game✨</h4>
+    <div id="status">Moves: 0/14 | Matches: 0/6</div>
+    <div class="grid" id="grid"></div>
+    <button onclick="startGame()">Restart Game</button>
+</div>
+    <script>
+        const maxMoves = 14;
+        const emojis = ['🚀', '🛸', '⭐', '🪐', '🌍', '👽', '🚀', '🛸', '⭐', '🪐', '🌍', '👽'];
+        let shuffledEmojis = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let tries = 0;
+        let isChecking = false;
+        let gameOver = false;
+
+        const grid = document.getElementById('grid');
+        const statusDisplay = document.getElementById('status');
+
+        function goToGame() {
+            document.getElementById('start-screen').classList.remove('active');
+            document.getElementById('game-screen').classList.add('active');
+            startGame();
+        }
+
+        function startGame() {
+            shuffledEmojis = [...emojis].sort(() => Math.random() - 0.5); 
+            flippedCards = [];
+            matchedPairs = 0;
+            tries = 0;
+            isChecking = false;
+            gameOver = false;
+            updateStatus();
+
+            grid.innerHTML = '';
+            
+            shuffledEmojis.forEach((emoji,index) => {
+                const card = document.createElement('div');
+                card.classList.add('card');
+                card.dataset.index = index;
+                card.addEventListener('click', () =>  flipCard(card,emoji));
+                grid.appendChild(card);
+            });
+        }
+        
+        function  flipCard(card, emoji) {
+            if (gameOver ||isChecking || card.classList.contains('flipped') || card.classList.contains('matched')) {
+                return;
+            }
+
+            card.classList.add('flipped');
+            card.textContent = emoji;
+            flippedCards.push({ card, emoji });
+
+            if (flippedCards.length === 2) {
+                isChecking = true;
+                tries++;
+                updateStatus();
+                
+                const isMatch = flippedCards[0].emoji === flippedCards[1].emoji;
+
+                if (isMatch) {
+                    matchedPairs++;
+                    flippedCards[0].card.classList.add('matched');
+                    flippedCards[1].card.classList.add('matched');
+                    flippedCards = [];
+                    isChecking = false;
+                    updateStatus();
+
+                    if(matchedPairs === emojis.length / 2) {
+                        gameOver = true;
+                        setTimeout(() => {
+                            alert(`Congratulations! You won in ${tries} moves!🎉`);
+                        }, 200);
+                    }
+                }else{
+                    setTimeout(() => {
+                        flippedCards[0].card.classList.remove('flipped');
+                        flippedCards[0].card.textContent = '';
+                        flippedCards[1].card.classList.remove('flipped');
+                        flippedCards[1].card.textContent = '';
+                        flippedCards = [];
+                        isChecking = false;
+
+                        if (tries >= maxMoves && matchedPairs < emojis.length / 2) {
+                            gameOver = true;
+                            setTimeout(() => {
+                                alert(`Game Over! Out of moves😢`);
+                            
+                            }, 100);
+                        }
+                    }, 800);
+                }
+            }
+        }
+
+        function updateStatus() {
+            statusDisplay.textContent = `Moves: ${tries}/${maxMoves} | Matches: ${matchedPairs}/${emojis.length / 2}`;
+        }
+       
+   </script>
+</body>
+</html>
